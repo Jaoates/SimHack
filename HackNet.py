@@ -9,6 +9,7 @@ np.random.seed(0)
 
 colors = ['blue', 'green', 'orange', 'yellow']
 class Resource:
+    endUser = True # true unless relay
     def __init__(self, x, y, z):
         self.pos = np.array([x, y, z])
         self.colors = ['blue', 'green'] # or orange, or yellow
@@ -17,13 +18,30 @@ class Resource:
         self.velocity = [0, 0, 0]
         self.connection = None
     
+    # def __repr__(self) -> str:
+    #     return f"{type(self)} -> {type(self.connection)}"
+    
     def distanceTo(self,resource):
         return np.linalg.norm(self.pos-resource.pos)
+    
+    def getPossibleLinks(self,resources):
+        relays = [r for r in resources if isinstance(r,Relay)]
+        assert(isinstance(relays[1],Relay))
+        pr = []
+        for r in relays:
+            pl = r.getPossibleLinks([self])
+            if self in pl:
+                pr.append(r)
+        return pr
         
 
 class Relay(Resource):
+    endUser = False
     def __init__(self, x, y, z):
         super().__init__(x, y, z)
+
+    def __repr__(self) -> str:
+        return "Relay"
     
     def getPossibleLinks(self,resources):
         pl = []
@@ -50,10 +68,42 @@ class Car(Resource):
 class Phone(Resource):
     def __init__(self, x, y, z):
         super().__init__(x, y, z)
+    
+    def __repr__(self) -> str:
+        return "Phone"
 
 class Server(Resource):
     def __init__(self, x, y, z):
         super().__init__(x, y, z)
+
+
+class Ant():
+    numLayers = 5 
+    def __init__(self,path) -> None:
+        self.path = path
+        self.origin = self.path[0]
+        self.destination = self.origin.connection
+
+    def getPossibleLinks(self,resources):
+        if not self.isAlive():
+            return self.path[-1].getPossibleLinks(resources)
+        else:
+            return []
+
+    def isAlive(self):
+        if len(path) == 1:
+            True
+        elif len(self.path) >= self.numLayers:
+            return False
+        elif self.path[-1].endUser:
+            return False
+        else:
+            return True
+
+    def propagate(self,resources,ants):
+        pl = self.getPossibleLinks(resources)
+        for l in pl:
+            ants.append(Ant(self.path + [l]))
 
 def getImage(path, zoom):
    return OffsetImage(plt.imread(path, format="png"), zoom=zoom)
@@ -206,7 +256,7 @@ rx = np.arange(100, 600, 200)
 ry = np.arange(100, 600, 200)
 for x in rx:
     for y in ry:
-        ax.add_patch(plt.Circle((x, y), 141, facecolor="none", edgecolor='blue'))
+        # ax.add_patch(plt.Circle((x, y), 225, facecolor="none", edgecolor='blue'))
         relay = Relay(x, y, 100)
         relay.colors = np.random.choice(colors, 3)
         relay.TxRate = 200
@@ -255,12 +305,33 @@ resources = cars + servers + phones + houses + relays
 
 ax.autoscale()
 
-for r in relays:
-    pl = r.getPossibleLinks(resources)
-    for pli in pl:
-        ax.plot([r.pos[0], pli.pos[0]], [r.pos[1], pli.pos[1]])
+# for r in relays:
+#     pl = r.getPossibleLinks(resources)
+#     for pli in pl:
+#         ax.plot([r.pos[0], pli.pos[0]], [r.pos[1], pli.pos[1]])
+
+        
+# for c in cars:
+#     pl = c.getPossibleLinks(relays)
+#     for pli in pl:
+#         ax.plot([c.pos[0], pli.pos[0]], [c.pos[1], pli.pos[1]])
+
+p = phones[6]
+
+a = Ant([p])
+ants = [a]
+
+for i in range(10):
+    for a in ants:
+        a.propagate(resources,ants)
+        print(a.isAlive())
+        print(a.path)
+
+for a in ants:
+    for i in range(len(a.path) - 1):
+        n = a.path[i]
+        n1 = a.path[i+1]
+        ax.plot([n.pos[0], n1.pos[0]], [n.pos[1], n1.pos[1]])
 
 plt.show()
 pass
-
-
