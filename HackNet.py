@@ -6,19 +6,38 @@ np.random.seed(0)
 
 #TODO Randomize other relay/user parameters
 
+
 colors = ['blue', 'green', 'orange', 'yellow']
 class Resource:
-     def __init__(self, x, y, z):
-        self.pos = [x, y, z]
+    def __init__(self, x, y, z):
+        self.pos = np.array([x, y, z])
         self.colors = ['blue', 'green'] # or orange, or yellow
         self.TxRate = 40
         self.RxRate = 35
         self.velocity = [0, 0, 0]
         self.connection = None
+    
+    def distanceTo(self,resource):
+        return np.linalg.norm(self.pos-resource.pos)
+        
 
 class Relay(Resource):
     def __init__(self, x, y, z):
         super().__init__(x, y, z)
+    
+    def getPossibleLinks(self,resources):
+        pl = []
+        for r in resources:
+            if r ==self:
+                pass
+            elif isinstance(r,Relay):
+                pl.append(r)
+            elif isinstance(r,Server) and self.distanceTo(r) <= 400:
+                pl.append(r)
+            elif self.distanceTo(r) <= 225:
+                pl.append(r)
+        return pl
+
 
 class House(Resource):
     def __init__(self, x, y, z):
@@ -44,6 +63,8 @@ fig, ax = plt.subplots()
 ax.set_xlim(0, 600)
 ax.set_ylim(0, 600)
 ax.set_box_aspect(1)
+
+#region 1
 
 # Generate 60 Total Houses
 houses = []
@@ -225,9 +246,21 @@ for p in range(50, 60):
     phones[p].connection = server
     server.connection = phones[p]
 
-for _ in phones:
-    ax.plot([_.pos[0], _.connection.pos[0]], [_.pos[1], _.connection.pos[1]])
+#endregion
+
+# for _ in phones:
+#     ax.plot([_.pos[0], _.connection.pos[0]], [_.pos[1], _.connection.pos[1]])
+
+resources = cars + servers + phones + houses + relays
 
 ax.autoscale()
 
+for r in relays:
+    pl = r.getPossibleLinks(resources)
+    for pli in pl:
+        ax.plot([r.pos[0], pli.pos[0]], [r.pos[1], pli.pos[1]])
+
 plt.show()
+pass
+
+
